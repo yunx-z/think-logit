@@ -2,6 +2,43 @@ import re
 from collections import Counter
 
 from eval.math_equivalence import is_equiv
+import re
+from typing import Optional
+
+_CODE_BLOCK_RE = re.compile(
+    r"```(?P<lang>[a-zA-Z0-9_+\-]*)[ \t]*\n(?P<code>.*?)(?<=\n)```",
+    re.DOTALL,
+)
+
+def extract_last_python_code(text: str) -> Optional[str]:
+    """
+    Extract the *last* python code block from an LLM response.
+    Priority:
+      1. Explicit python blocks (```python / ```py)
+      2. If none exist, fall back to language-less blocks (``` ... ```)
+
+    Returns:
+        A single code block string, or None if nothing found.
+    """
+    python_blocks = []
+    generic_blocks = []
+
+    for match in _CODE_BLOCK_RE.finditer(text):
+        lang = (match.group("lang") or "").strip().lower()
+        code = match.group("code").strip("\n")
+
+        if lang in ("python", "py"):
+            python_blocks.append(code)
+        elif lang == "":
+            generic_blocks.append(code)
+
+    if python_blocks:
+        return python_blocks[-1]   # last explicit python block
+
+    if generic_blocks:
+        return generic_blocks[-1]  # last generic block
+
+    return text.replace("```python", "").replace("```", "")
 
 def remove_boxed(s):
     left = "boxed{"
@@ -128,6 +165,9 @@ def my_answer_extraction(solution, problem_type='math'):
     """
     solution : str
     """
+    if problem_type == 'code':
+        return extract_last_python_code(solution)
+
     boxed_answer = remove_boxed(last_boxed_only_string(solution))
     if boxed_answer:
         return boxed_answer

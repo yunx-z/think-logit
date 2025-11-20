@@ -12,6 +12,7 @@ from eval.utils import (
 )
 from eval.math_util import my_answer_extraction
 from eval.math_equivalence import is_equiv
+from eval.lcb_prompts import get_generic_question_template_answer 
 
 
 def trim_output(output):
@@ -34,10 +35,17 @@ def main(args):
     with open(os.path.join(args.data_dir, "test.jsonl")) as fin:
         for line in fin:
             example = json.loads(line)
-            all_test_data.append({
-                "question": example["question"],
-                "answer": str(example["answer"])
-            })
+            if "lcb" in args.data_dir.lower():
+                example["question"] = example["question_content"]
+                example["answer"] = ""
+                all_test_data.append(example)
+            else:
+                example_question = example["question"]
+                example_answer = example["answer"]
+                all_test_data.append({
+                    "question": example_question,
+                    "answer": str(example_answer)
+                })
 
     test_data = all_test_data
     if args.max_examples and len(all_test_data) > args.max_examples:
@@ -56,23 +64,33 @@ def main(args):
 
     gpqa_instr = "Solve the following problem. You must choose only one option from A to D. Your final answer should be a single letter from A to D, in the form \\boxed{answer}, at the end of your response.\n\n"
     math_instr = "Solve the following math problem. Put your final answer within \\boxed{}.\n\n"
-    
+    code_instr = "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n\n"
+
     if "gpqa" in args.data_dir.lower():
         if "icl" in args.data_dir.lower():
             prompt_prefix = open("long_cot_prompt_gpqa.txt", 'r').read() + gpqa_instr
         else:
             prompt_prefix = gpqa_instr
+        problem_type = "mutiple_choice"
     elif "icl" in args.data_dir.lower():
         prompt_prefix = open("long_cot_prompt.txt", 'r').read() + math_instr 
+        problem_type = "math"
+    elif "lcb" in args.data_dir.lower():
+        prompt_prefix = code_instr
+        problem_type = "code"
     else:
         prompt_prefix = math_instr
-    problem_type = "mutiple_choice" if "gpqa" in args.data_dir.lower() else "math"
+        problem_type = "math"
+    # problem_type = "mutiple_choice" if "gpqa" in args.data_dir.lower() else "math"
 
 
     prompts = []
     chat_formatting_function = dynamic_import_function(args.chat_formatting_function) if args.use_chat_format else None
     for example in test_data:
-        prompt = prompt_prefix + "Question: " + example["question"].strip()
+        if "lcb" in args.data_dir.lower():
+            prompt = prompt_prefix + get_generic_question_template_answer(example)
+        else:
+            prompt = prompt_prefix + "Question: " + example["question"].strip()
         prompts.append(prompt)
 
     if len(prompts) > 0:
