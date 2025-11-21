@@ -120,18 +120,20 @@ def main(args):
         )
     print("Finish loading model and tokenizer!")
 
-    if "Instruct" in args.base_model_name_or_path or "simplescaling" in args.base_model_name_or_path:
+    if "Instruct" in args.base_model_name_or_path or "simplescaling" in args.base_model_name_or_path or "Olmo-3" in args.base_model_name_or_path:
         # s1 is based on Qwen-Instruct
         if "Qwen" in args.base_model_name_or_path or "simplescaling" in args.base_model_name_or_path:
             stop_id_sequences = [[151643], [151645]]
         elif "Llama" in args.base_model_name_or_path:
             stop_id_sequences = [[128001], [128009]]
-        elif "OLMo" in args.base_model_name_or_path:
+        elif "olmo" in args.base_model_name_or_path.lower():
             stop_id_sequences = [[100257], [100265]]
         else:
             raise ValueError(f"{args.base_model_name_or_path} is missing stop_id_sequences")
     else:
         stop_id_sequences = None
+
+    print(f"using stop_id_sequences = {stop_id_sequences} for {args.base_model_name_or_path}")
 
     outputs = generate_completions(
         model=model,

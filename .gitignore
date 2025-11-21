@@ -23,6 +23,7 @@ google/
 mistralai/
 modeling/dexperts.py.single_family
 plot_scripts/
+eval/compute_metrics.py
 preprocess_GPQA.py
 qwen_unique.txt
 vocab_overlap.py

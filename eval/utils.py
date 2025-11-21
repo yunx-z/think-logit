@@ -173,7 +173,7 @@ def load_lm_and_tokenizer(
         'device_map': device_map,
         'offload_folder': 'offload_folder',
         'torch_dtype': torch.bfloat16,
-        'offload_state_dict': True,
+        # 'offload_state_dict': True,
         'load_in_8bit': load_in_8bit,
         'trust_remote_code': True,
     }
@@ -221,7 +221,7 @@ def load_dexperts_model_and_tokenizer(
         'device_map': device_map,
         'offload_folder': 'offload_folder',
         'torch_dtype': torch.bfloat16,
-        'offload_state_dict': True,
+        # 'offload_state_dict': True, # incompatible with transformer 4.57.0 
         'load_in_8bit': load_in_8bit,
         'trust_remote_code': True,
     }
