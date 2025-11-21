@@ -130,6 +130,8 @@ def main(args):
             stop_id_sequences = [[100257], [100265]]
         elif "EXAONE" in args.base_model_name_or_path:
             stop_id_sequences = [[361], [42], [2]]
+        elif "gemma" in args.base_model_name_or_path:
+            stop_id_sequences = [[1], [106]]
         else:
             raise ValueError(f"{args.base_model_name_or_path} is missing stop_id_sequences")
     else:

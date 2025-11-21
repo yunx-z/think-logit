@@ -261,8 +261,10 @@ class DExpertsLlama:
             stop_id_sequences = [100257, 100265]
         elif "EXAONE" in self.base_model_name_or_path:
             stop_id_sequences = [361, 42, 2]
+        elif "gemma" in self.base_model_name_or_path:
+            stop_id_sequences = [1, 106]
         else:
-            raise ValueError(f"{args.base_model_name_or_path} is missing stop_id_sequences")
+            raise ValueError(f"{self.base_model_name_or_path} is missing stop_id_sequences")
 
         eos_token_id_tensor = torch.tensor(stop_id_sequences, device=input_ids.device)
         last_tokens = input_ids[:, -1].clone()
