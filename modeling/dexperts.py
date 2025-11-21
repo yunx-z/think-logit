@@ -253,20 +253,16 @@ class DExpertsLlama:
                     antiexpert_kwargs['attention_mask'] = expert_kwargs['attention_mask'].clone()
 
         unfinished_sequences = torch.ones(input_ids.shape[0], dtype=torch.long, device=input_ids.device)
-        if "Instruct" in self.base_model_name_or_path or "simplescaling" in self.base_model_name_or_path or "Olmo-3" in self.base_model_name_or_path:
-            # s1 is based on Qwen-Instruct
-            if "Qwen" in self.base_model_name_or_path or "simplescaling" in self.base_model_name_or_path:
-                stop_id_sequences = [151643, 151645]
-            elif "Llama" in self.base_model_name_or_path:
-                stop_id_sequences = [128001, 128009]
-            elif "olmo" in self.base_model_name_or_path.lower():
-                stop_id_sequences = [100257, 100265]
-            elif "EXAONE" in self.base_model_name_or_path:
-                stop_id_sequences = [361, 42, 2]
-            else:
-                raise ValueError(f"{args.base_model_name_or_path} is missing stop_id_sequences")
+        if "Qwen" in self.base_model_name_or_path or "simplescaling" in self.base_model_name_or_path:
+            stop_id_sequences = [151643, 151645]
+        elif "Llama" in self.base_model_name_or_path:
+            stop_id_sequences = [128001, 128009]
+        elif "olmo" in self.base_model_name_or_path.lower():
+            stop_id_sequences = [100257, 100265]
+        elif "EXAONE" in self.base_model_name_or_path:
+            stop_id_sequences = [361, 42, 2]
         else:
-            stop_id_sequences = None
+            raise ValueError(f"{args.base_model_name_or_path} is missing stop_id_sequences")
 
         eos_token_id_tensor = torch.tensor(stop_id_sequences, device=input_ids.device)
         last_tokens = input_ids[:, -1].clone()
