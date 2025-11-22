@@ -64,7 +64,7 @@ class DExpertsLlama:
         self.chat_response_prefix = chat_response_prefix
 
         # Llama chat experts need different formatting
-        self.use_chat_format_for_expert = bool(expert_model_name_or_path and 'chat' in expert_model_name_or_path.lower())
+        self.use_chat_format_for_expert = False # bool(expert_model_name_or_path and 'chat' in expert_model_name_or_path.lower())
 
         if self.use_chat_format_for_expert:
             self.chat_prefix = "[INST]"
@@ -188,6 +188,36 @@ class DExpertsLlama:
              outputs = model(**inputs, return_dict=True)
         return outputs
 
+    def _apply_template_and_tokenize(self, tokenizer, prompts, add_special_tokens=True):
+        # Step 1: Convert each prompt into a chat-template string
+        templated_texts = []
+        for p in prompts:
+            messages = [
+                {"role": "system", "content": "You are EXAONE model from LG AI Research, a helpful assistant."},
+                {"role": "user", "content": p}
+            ]
+
+            # get raw text (not tokenized) — this ensures we can batch-pad
+            text = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,                # VERY IMPORTANT
+                add_generation_prompt=True
+            )
+            templated_texts.append(text)
+
+        # Step 2: Tokenize all at once → consistent padding
+        tokenized = tokenizer(
+            templated_texts,
+            padding="longest",                # same behavior as your original call
+            return_tensors="pt",
+            add_special_tokens=add_special_tokens
+        )
+
+        # Move everything to device
+        tokenized = {k: v.to(self.device) for k, v in tokenized.items()}
+
+        return tokenized
+
     def generate(
         self,
         input_ids: Optional[torch.Tensor] = None,
@@ -211,6 +241,12 @@ class DExpertsLlama:
         base_kwargs["model_name"] = self.base_model_name_or_path
         expert_kwargs["model_name"] = self.expert_model_name_or_path
         antiexpert_kwargs["model_name"] = self.antiexpert_model_name_or_path
+        
+        prompts = self.base_tokenizer.batch_decode(input_ids, skip_special_tokens=True)
+        if "EXAONE" in self.base_model_name_or_path:
+            template_tokenized = self._apply_template_and_tokenize(self.base_tokenizer, prompts)
+            input_ids = template_tokenized["input_ids"]
+            base_kwargs["attention_mask"] = template_tokenized["attention_mask"]
 
         needs_experts = self.expert_model_name_or_path or self.antiexpert_model_name_or_path
         if needs_experts:
@@ -225,27 +261,26 @@ class DExpertsLlama:
             if self.token_id_map is not None:
                 # --- CROSS-FAMILY INITIALIZATION ---
                 # Decode the base prompt and re-encode with the expert tokenizer.
-                prompts = self.base_tokenizer.batch_decode(input_ids, skip_special_tokens=True)
                 expert_inputs = self.expert_tokenizer(prompts, return_tensors="pt", padding="longest").to(self.device)
                 expert_input_ids = expert_inputs.input_ids
                 expert_kwargs['attention_mask'] = expert_inputs.attention_mask
                 antiexpert_kwargs['attention_mask'] = expert_inputs.attention_mask.clone() # Antiexpert shares expert's tokenization
 
-                if self.use_chat_format_for_expert:
-                    # Re-run chat formatting on the base prompt, but tokenize with the expert tokenizer
-                    chat_inputs = self._get_tokenized_chat_inputs(input_ids, self.expert_tokenizer)
-                    expert_input_ids = chat_inputs['input_ids']
-                    if 'attention_mask' in chat_inputs:
-                        expert_kwargs['attention_mask'] = chat_inputs['attention_mask']
-                        antiexpert_kwargs['attention_mask'] = chat_inputs['attention_mask'].clone()
+                # if self.use_chat_format_for_expert:
+                #     # Re-run chat formatting on the base prompt, but tokenize with the expert tokenizer
+                #     chat_inputs = self._get_tokenized_chat_inputs(input_ids, self.expert_tokenizer)
+                #     expert_input_ids = chat_inputs['input_ids']
+                #     if 'attention_mask' in chat_inputs:
+                #         expert_kwargs['attention_mask'] = chat_inputs['attention_mask']
+                #         antiexpert_kwargs['attention_mask'] = chat_inputs['attention_mask'].clone()
             else:
                 # --- SAME-FAMILY INITIALIZATION (Original Logic) ---
                 expert_input_ids = input_ids
-                if self.use_chat_format_for_expert:
-                    chat_inputs = self._get_tokenized_chat_inputs(input_ids, self.base_tokenizer)
-                    expert_input_ids = chat_inputs['input_ids']
-                    if 'attention_mask' in chat_inputs:
-                        expert_kwargs['attention_mask'] = chat_inputs['attention_mask']
+                # if self.use_chat_format_for_expert:
+                #     chat_inputs = self._get_tokenized_chat_inputs(input_ids, self.base_tokenizer)
+                #     expert_input_ids = chat_inputs['input_ids']
+                #     if 'attention_mask' in chat_inputs:
+                #         expert_kwargs['attention_mask'] = chat_inputs['attention_mask']
                 # Ensure attention masks are consistent
                 if 'attention_mask' in base_kwargs:
                     if 'attention_mask' not in expert_kwargs:
