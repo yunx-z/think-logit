@@ -33,7 +33,7 @@ def get_generic_question_template_answer(example):
     else:
         prompt += f"### Format: {PromptConstants.FORMATTING_WITHOUT_STARTER_CODE}\n"
         prompt += "```python\n# YOUR CODE HERE\n```\n\n"
-    prompt += f"### Answer: (use the provided format with backticks)\n\n"
+    prompt += f"Please think step by step and give your answer using the provided format with backticks.\n\n"
     
     # example['problem'] = prompt
     # return example
