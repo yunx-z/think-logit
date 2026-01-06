@@ -115,7 +115,6 @@ def main(args):
             use_fast_tokenizer=not args.use_slow_tokenizer,
             log_file=os.path.join(args.save_dir, "logits.log"),
             alpha=args.alpha,
-            alpha_strategy=args.alpha_strategy,
             tokenizer_mapping_path=args.tokenizer_mapping_path
         )
     print("Finish loading model and tokenizer!")
@@ -148,7 +147,6 @@ def main(args):
         do_sample=args.do_sample,
         budget_forcing=args.budget_forcing,
         stop_id_sequences=stop_id_sequences,
-        stop_repetitive_generation=args.alpha_strategy is not None,
         output_file=output_file,
         test_data=test_data,
         problem_type=problem_type,
@@ -258,11 +256,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--system_prompt",
-        type=str,
-        default=None
-    )
-    parser.add_argument(
-        "--alpha_strategy",
         type=str,
         default=None
     )

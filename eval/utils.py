@@ -211,7 +211,6 @@ def load_dexperts_model_and_tokenizer(
     use_fast_tokenizer: bool = False,
     padding_side: str = "left",
     log_file: str = None,
-    alpha_strategy: str = None,
     tokenizer_mapping_path: str = None,
 ):
     from transformers import AutoTokenizer
@@ -250,7 +249,6 @@ def load_dexperts_model_and_tokenizer(
         chat_response_prefix=chat_response_prefix,
         model_kwargs=model_kwargs,
         log_file=log_file,
-        alpha_strategy=alpha_strategy,
     )
 
     return model, base_tokenizer
